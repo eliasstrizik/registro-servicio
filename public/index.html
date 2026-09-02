@@ -37,7 +37,7 @@
   <div id="app-shell" class="hidden">
   <aside class="app-sidebar">
     <div class="brand"><div class="brandmark" aria-hidden="true">ST</div><div><strong>Servicio Técnico</strong><small>Gestión de órdenes</small></div></div>
-    <div class="tabs" role="tablist"><button class="tab active" id="tab-form" type="button">＋ <span>Nueva orden</span></button><button class="tab" id="tab-admin" type="button">▤ <span>Órdenes registradas</span></button></div>
+    <div class="tabs" role="tablist"><button class="tab active" id="tab-form" type="button" aria-label="Nueva orden">＋ <span>Nueva orden</span></button><button class="tab" id="tab-admin" type="button" aria-label="Órdenes registradas">▤ <span>Órdenes registradas</span></button><button class="tab hidden" id="tab-users" type="button" aria-label="Usuarios">♙ <span>Usuarios</span></button></div>
     <div class="sidebar-note">Sistema de presupuestación<br>y control de repuestos</div>
     <div class="account"><span class="account-name" id="account-email"></span><button class="btn btn-outline" id="sign-out" type="button">Cerrar sesión</button></div>
   </aside>
@@ -81,20 +81,37 @@
         <button class="btn btn-outline" id="lock-orders" type="button">Bloquear registros</button>
       </div>
     </section>
+    <section id="users-view" class="hidden" aria-label="Administración de usuarios">
+      <div class="intro"><p class="eyebrow">Administración</p><h1>Usuarios autorizados</h1><p>Gestioná los correos que pueden ingresar. Esta sección requiere tu cuenta de administrador y la contraseña de órdenes registradas.</p></div>
+      <form id="users-gate" class="card card-body admin-gate">
+        <h2>Desbloquear Usuarios</h2><label for="users-password">Contraseña de órdenes registradas</label>
+        <div class="gate-row"><input id="users-password" type="password" autocomplete="current-password" required maxlength="200"><button id="unlock-users" class="btn btn-primary" type="submit">Desbloquear</button></div>
+      </form>
+      <p id="users-status" class="status" role="status" aria-live="polite"></p>
+      <div id="users-dashboard" class="dashboard hidden">
+        <article class="card"><div class="card-head"><div><h2>Agregar correo</h2><p>Se habilita como operador: puede cargar órdenes y consultar/descargar con la clave compartida. No se envía una invitación automática.</p></div></div>
+          <form id="add-user-form" class="card-body"><label for="new-user-email">Correo electrónico</label><div class="gate-row"><input id="new-user-email" type="email" required maxlength="254" autocomplete="off" placeholder="nombre@empresa.com.ar"><button id="add-user" class="btn btn-primary" type="submit">Agregar usuario</button></div></form>
+        </article>
+        <div class="card toolbar"><input id="users-search" type="search" aria-label="Buscar correo" placeholder="Buscar correo…"><span id="users-count" class="pill"></span><button id="refresh-users" class="btn btn-outline" type="button">↻ Actualizar</button><button id="lock-users" class="btn btn-outline" type="button">Bloquear Usuarios</button></div>
+        <div id="users-list" class="orders"></div>
+      </div>
+    </section>
   </main>
   </div>
   <dialog id="detail"><div class="modal-head"><div><small style="color:var(--muted)">Detalle de orden</small><h3 id="detail-title"></h3></div><button class="close" id="close-detail" aria-label="Cerrar">×</button></div><div class="modal-body" id="detail-body"></div></dialog>
+  <dialog id="user-confirm"><form id="user-confirm-form" class="card-body"><h2 id="user-confirm-title">Confirmar cambio</h2><p id="user-confirm-message"></p><div class="gate-row"><button id="user-confirm-cancel" type="button" class="btn btn-outline">Cancelar</button><button id="user-confirm-save" type="submit" class="btn btn-primary">Confirmar</button></div></form></dialog>
   <div class="toast hidden" id="toast" role="status"></div>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="/vendor/supabase.js"></script>
   <script src="/auth.js"></script>
+  <script src="/users.js"></script>
   <script>
     const state={parts:[],orders:[],filtered:[],profile:null,password:'',ordersAccess:false,ordersRequest:0};
     const $=id=>document.getElementById(id);
     const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
     async function rpc(name,body={}){if(!state.profile)throw new Error('Iniciá sesión para continuar.');const {data,error}=await window.serviceAuth.client.rpc(name,body);if(error){if(error.code==='42501'){clearSensitiveData();window.serviceAuth.recheck()}throw error}return data}
     function localDate(){const date=new Date();return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}
-    function clearSensitiveData(){state.ordersRequest++;state.ordersAccess=false;state.orders=[];state.filtered=[];$('orders-list').replaceChildren();$('detail-body').replaceChildren();$('detail-title').textContent='';$('detail').close();$('dashboard').classList.add('hidden')}
+    function clearSensitiveData(){state.ordersRequest++;state.ordersAccess=false;state.orders=[];state.filtered=[];$('orders-list').replaceChildren();$('detail-body').replaceChildren();$('detail-title').textContent='';$('detail').close();$('dashboard').classList.add('hidden');window.serviceUsers?.lock()}
     function updateGate(){$('admin-gate').classList.toggle('hidden',state.profile?.role==='admin'||state.ordersAccess);$('lock-orders').classList.toggle('hidden',state.profile?.role==='admin')}
     window.addEventListener('service-auth',event=>{
       const next=event.detail;
@@ -103,7 +120,7 @@
       if(changed||!next){clearSensitiveData();state.password='';$('admin-password').value=''}
       if(!next){state.parts=[];renderParts();$('order-form').reset();$('service_date').value=localDate();$('search').value='';$('form-status').textContent='';$('admin-status').textContent='';return}
       $('tab-admin').classList.remove('hidden');updateGate();
-      if(changed)showView(location.hash==='#ordenes'?'admin':'form');
+      if(changed)showView(location.hash==='#usuarios'?'users':location.hash==='#ordenes'?'admin':'form');
     });
     function toast(message){$('toast').textContent=message;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),3200)}
     function renderParts(){ $('part-count').textContent=`${state.parts.length} cargado${state.parts.length===1?'':'s'}`;$('parts-empty').classList.toggle('hidden',state.parts.length>0);$('parts-table').classList.toggle('hidden',state.parts.length===0);$('parts-list').innerHTML=state.parts.map((p,i)=>`<div class="part"><b>${esc(p.code)}</b><p>${esc(p.description)}</p><span class="qty">${p.quantity}</span><button class="btn btn-danger" type="button" data-remove="${i}" aria-label="Quitar repuesto">×</button></div>`).join('')}
@@ -111,8 +128,8 @@
     $('add-part').addEventListener('click',addPart);$('part_description').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPart()}});$('parts-list').addEventListener('click',e=>{const i=e.target.closest('[data-remove]')?.dataset.remove;if(i!==undefined){state.parts.splice(Number(i),1);renderParts()}});
     async function submitOrder(payload){return rpc('submit_service_order_authenticated',{p_order_number:payload.order_number,p_service_date:payload.service_date,p_client:payload.client,p_technician:payload.technician,p_model:payload.model,p_observations:payload.observations||'',p_parts:payload.parts})}
     $('order-form').addEventListener('submit',async e=>{e.preventDefault();const status=$('form-status');if(!state.parts.length){status.textContent='Agregá al menos un repuesto.';status.className='status bad';return}const payload={order_number:$('order_number').value.trim(),service_date:$('service_date').value,client:$('client').value.trim(),technician:$('technician').value.trim(),model:$('model').value.trim(),observations:$('observations').value.trim(),parts:state.parts};const btn=$('save-order');btn.disabled=true;status.textContent='Guardando…';status.className='status';try{await submitOrder(payload);e.target.reset();$('service_date').value=localDate();state.parts=[];renderParts();status.textContent='Orden guardada correctamente.';status.className='status ok';toast(`Orden ${payload.order_number} guardada`)}catch(err){status.textContent=err.message.includes('unique')?'Ese número de orden ya existe.':err.message;status.className='status bad'}finally{btn.disabled=false}});
-    function showView(name){const admin=name==='admin'&&Boolean(state.profile);$('form-view').classList.toggle('hidden',admin);$('admin-view').classList.toggle('hidden',!admin);$('tab-form').classList.toggle('active',!admin);$('tab-admin').classList.toggle('active',admin);location.hash=admin?'ordenes':'';updateGate();if(admin&&(state.profile.role==='admin'||state.password))loadOrders().catch(()=>{})}
-    $('tab-form').addEventListener('click',()=>showView('form'));$('tab-admin').addEventListener('click',()=>showView('admin'));
+    function showView(name){const admin=name==='admin'&&Boolean(state.profile),users=name==='users'&&state.profile?.role==='admin';$('form-view').classList.toggle('hidden',admin||users);$('admin-view').classList.toggle('hidden',!admin);$('users-view').classList.toggle('hidden',!users);$('tab-form').classList.toggle('active',!admin&&!users);$('tab-admin').classList.toggle('active',admin);$('tab-users').classList.toggle('active',users);location.hash=users?'usuarios':admin?'ordenes':'';updateGate();if(admin&&(state.profile.role==='admin'||state.password))loadOrders().catch(()=>{});if(users)window.serviceUsers?.refreshIfUnlocked()}
+    $('tab-form').addEventListener('click',()=>showView('form'));$('tab-admin').addEventListener('click',()=>showView('admin'));$('tab-users').addEventListener('click',()=>showView('users'));
     async function loadOrders(){
       const status=$('admin-status'),email=state.profile?.email,request=++state.ordersRequest;
       status.textContent='Consultando…';status.className='status';
@@ -140,3 +157,4 @@
   </script>
 </body>
 </html>
+

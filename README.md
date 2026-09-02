@@ -7,6 +7,7 @@ Aplicación web para registrar órdenes de servicio con múltiples repuestos, co
 - Formulario con número de orden, fecha, cliente, técnico, modelo y observaciones.
 - Múltiples repuestos por orden (código, cantidad y descripción).
 - Acceso por correo autorizado y código de un solo uso (Supabase Auth).
+- Sección Usuarios: el administrador verifica además la contraseña de órdenes para ver la lista, agregar operadores y activar/desactivar correos. Las cuentas administradoras no se pueden modificar desde esta sección.
 - Administrador principal: consulta y descarga directa tras iniciar sesión.
 - Operadores habilitados: carga de órdenes; consulta y descarga al ingresar la clave compartida.
 - Clave compartida solo en memoria durante la sesión, nunca en almacenamiento del navegador; botón para bloquear registros.
@@ -41,6 +42,14 @@ Las funciones antiguas se conservan temporalmente para que el sitio existente si
 `supabase/schema.sql` documenta la base histórica, no la configuración final de seguridad. La evolución aditiva está en `supabase/migrations/20260902171856_email_access_control.sql`; no elimina órdenes ni funciones anteriores. La lista autorizada se administra exclusivamente en `private.service_access`, con roles `admin` y `operator`.
 
 `tests/access.sql` comprueba permisos, clave, límite de intentos, carga con varios repuestos y revocación de acceso dentro de una transacción que se revierte. `tests/access.test.mjs` comprueba interfaz, descarga, cierre de sesión y respuestas obsoletas.
+
+## Administración de usuarios
+
+Ingresar con la cuenta administradora, abrir **Usuarios** e introducir la contraseña de órdenes registradas. Se puede buscar por correo, agregar operadores y activar/desactivar los existentes. Cada alta o cambio requiere confirmación. La nueva persona ingresa solicitando su propio código de correo; no se envía una invitación automáticamente. No se agregaron automáticamente correos adicionales.
+
+La API `manage_service_users` vuelve a validar administrador, lista activa y contraseña en cada llamada. La contraseña no se guarda en almacenamiento del navegador. Cinco fallos bloquean los intentos durante hasta 15 minutos. Las cuentas administradoras están protegidas: esta sección no permite desactivarlas ni crear/promover otros administradores. Un operador no puede administrar usuarios aunque conozca la contraseña compartida.
+
+La migración `20260902182747_service_users_admin.sql` añade esta API y un registro privado de auditoría `private.service_access_audit`. Las pruebas `tests/users.sql` se ejecutan con rollback y verifican denegaciones, altas, bajas, reactivación, administrador protegido, límite de intentos y auditoría; `tests/users.test.mjs` verifica el formulario, confirmaciones y limpieza al cerrar sesión. La revocación global sigue pendiente del cierre de las API antiguas descrito arriba.
 
 ## Correo y dominio
 
