@@ -1,4 +1,6 @@
--- Esquema de referencia. La instancia productiva ya está configurada.
+-- BASE HISTÓRICA, no ejecutar sobre producción ni usar como seguridad final.
+-- La evolución autenticada está en migrations/20260902171856_email_access_control.sql.
+-- Este archivo conserva el historial técnico del sitio anterior durante la migración.
 create extension if not exists pgcrypto with schema extensions;
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
@@ -61,4 +63,3 @@ create function public.admin_list_service_orders(p_password text) returns jsonb 
 revoke all on function private.submit_service_order(text,date,text,text,text,text,jsonb),private.admin_list_service_orders(text),public.submit_service_order(text,date,text,text,text,text,jsonb),public.admin_list_service_orders(text) from public;
 grant usage on schema private to anon,authenticated;
 grant execute on function private.submit_service_order(text,date,text,text,text,text,jsonb),private.admin_list_service_orders(text),public.submit_service_order(text,date,text,text,text,text,jsonb),public.admin_list_service_orders(text) to anon,authenticated;
-

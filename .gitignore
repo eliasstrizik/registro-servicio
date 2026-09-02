@@ -49,5 +49,9 @@ next-env.d.ts
 /vite.config.ts
 /components.json
 /pnpm-workspace.yaml
-/pnpm-lock.yaml
+/.pnpm-cache/
+/.pnpm-store/
+/supabase/.temp/
 
+.vercel
+.env*

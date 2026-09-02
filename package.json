@@ -1,14 +1,17 @@
 {
   "name": "registro-servicio",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "node scripts/build.mjs"
+    "dev": "node scripts/build.mjs && node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.114.0"
   },
   "engines": {
     "node": ">=20"
   }
 }
-
