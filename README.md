@@ -24,7 +24,9 @@ Instalá con `pnpm install --frozen-lockfile`. Ejecutá `pnpm dev` y abrí `http
 
 ### Estado de migración (2 de septiembre de 2026)
 
-La nueva versión **todavía no está publicada en Vercel**. El sitio anterior en OpenAI Sites continúa privado y sin modificaciones. El proyecto de Vercel está creado; falta verificar el dominio de envío de Resend, comprobar la recepción del código y autorizar un plan apto para uso comercial. No se contrató Vercel Pro.
+El alojamiento elegido es **Cloudflare Pages, plan gratuito**, por solicitud del propietario. No se contratará Vercel Pro. La nueva versión **todavía no está publicada en Cloudflare**. El sitio anterior en OpenAI Sites continúa privado y sin modificaciones. Falta autorizar la integración de Cloudflare con este repositorio, verificar el dominio de envío de Resend y comprobar la recepción del código.
+
+El proyecto de Vercel quedó como preparación anterior, sin despliegue ni plan pago. La integración gratuita de Resend provisionada desde Vercel sigue siendo el proveedor de SMTP; no requiere alojar la web en Vercel. No desconectarla durante el cambio de alojamiento sin preparar primero su reemplazo.
 
 La base ya tiene las funciones nuevas y el administrador principal configurado, conservando las órdenes existentes y la clave anterior. Los cuatro correos proporcionados por escrito están habilitados; los de la captura están pendientes de confirmación adicional. Los correos reales y la contraseña no se incluyen en este repositorio público.
 
@@ -44,3 +46,18 @@ Las funciones antiguas se conservan temporalmente para que el sitio existente si
 Supabase Auth entrega códigos mediante SMTP de Resend. `supabase/config.toml` toma `RESEND_API_KEY` del entorno, sin guardar la clave en código. Las plantillas están en `supabase/templates/otp.html`. **`supabase config push` modifica la configuración remota**: revisar los cambios y preservar ajustes existentes antes de ejecutarlo; no es una vista previa.
 
 Dominio de envío previsto: `auth.eliasstrizik.com.ar`. Aplicación prevista: `servicio.eliasstrizik.com.ar`. Agregar solo los registros nuevos indicados por los proveedores; no reemplazar los registros del sitio principal ni del correo existente.
+
+## Publicación gratuita en Cloudflare Pages
+
+- Conectar solamente `eliasstrizik/registro-servicio`, no todos los repositorios de la cuenta.
+- Rama de producción: `main`.
+- Framework: ninguno (HTML/CSS/JavaScript).
+- Comando de build: `pnpm run build`.
+- Directorio de salida: `dist`.
+- Node.js: 24; dependencias instaladas usando el lockfile del repositorio.
+- No copiar `.env.local`, claves SMTP ni tokens a los assets ni a variables públicas. El sitio no necesita secretos de Resend en su build.
+- La URL `pages.dev` y la asociación del dominio se documentarán después de que Cloudflare las confirme. No inventar una URL antes de crear el proyecto.
+- Mantener el plan gratuito. Si se alcanza un límite de cualquier proveedor, informar al propietario; no activar upgrades ni recargas automáticas.
+
+La exportación XLSX/CSV se genera en el navegador y las órdenes permanecen en Supabase. El cambio de alojamiento no copia ni mueve registros de clientes a Cloudflare.
+
