@@ -24,7 +24,7 @@ Instalá con `pnpm install --frozen-lockfile`. Ejecutá `pnpm dev` y abrí `http
 
 ### Estado de migración (2 de septiembre de 2026)
 
-El alojamiento elegido es **Cloudflare Pages, plan gratuito**, por solicitud del propietario. No se contratará Vercel Pro. La nueva versión **todavía no está publicada en Cloudflare**. El sitio anterior en OpenAI Sites continúa privado y sin modificaciones. Falta autorizar la integración de Cloudflare con este repositorio, verificar el dominio de envío de Resend y comprobar la recepción del código.
+La nueva versión está publicada en **Cloudflare Pages, plan gratuito**, conectada a este repositorio con despliegues automáticos desde `main`. La aplicación y sus scripts responden HTTP 200. No se contrató Vercel Pro. El sitio anterior en OpenAI Sites continúa sin modificaciones, pendiente de retiro funcional después de comprobar el primer ingreso real por correo.
 
 El proyecto de Vercel quedó como preparación anterior, sin despliegue ni plan pago. La integración gratuita de Resend provisionada desde Vercel sigue siendo el proveedor de SMTP; no requiere alojar la web en Vercel. No desconectarla durante el cambio de alojamiento sin preparar primero su reemplazo.
 
@@ -32,7 +32,8 @@ La base ya tiene las funciones nuevas y el administrador principal configurado, 
 
 Las funciones antiguas se conservan temporalmente para que el sitio existente siga funcionando. La migración de seguridad no está cerrada hasta revocar sus permisos anónimos durante el cambio definitivo, después de verificar el acceso nuevo. No publicar la nueva versión como terminada antes de esa verificación.
 
-- Aplicación: https://registro-servicio-elias.eliasstrizik.chatgpt.site/
+- Aplicación: https://servicio.eliasstrizik.com.ar/
+- URL alternativa: https://registro-servicio.pages.dev/
 - Código fuente: https://github.com/eliasstrizik/registro-servicio
 
 ## Base de datos
@@ -45,7 +46,7 @@ Las funciones antiguas se conservan temporalmente para que el sitio existente si
 
 Supabase Auth entrega códigos mediante SMTP de Resend. `supabase/config.toml` toma `RESEND_API_KEY` del entorno, sin guardar la clave en código. Las plantillas están en `supabase/templates/otp.html`. **`supabase config push` modifica la configuración remota**: revisar los cambios y preservar ajustes existentes antes de ejecutarlo; no es una vista previa.
 
-Dominio de envío previsto: `auth.eliasstrizik.com.ar`. Aplicación prevista: `servicio.eliasstrizik.com.ar`. Agregar solo los registros nuevos indicados por los proveedores; no reemplazar los registros del sitio principal ni del correo existente.
+Dominio de envío verificado en Resend: `auth.eliasstrizik.com.ar`, con remitente `acceso@auth.eliasstrizik.com.ar`. Aplicación asociada a `servicio.eliasstrizik.com.ar` y comprobada por HTTPS. Se agregaron registros DNS específicos para DKIM, SPF/MX de envío y CNAME de la aplicación, preservando el sitio principal y el correo existente. La recepción real del código aún requiere confirmación del propietario.
 
 ## Publicación gratuita en Cloudflare Pages
 
@@ -56,7 +57,8 @@ Dominio de envío previsto: `auth.eliasstrizik.com.ar`. Aplicación prevista: `s
 - Directorio de salida: `dist`.
 - Node.js: 24; dependencias instaladas usando el lockfile del repositorio.
 - No copiar `.env.local`, claves SMTP ni tokens a los assets ni a variables públicas. El sitio no necesita secretos de Resend en su build.
-- La URL `pages.dev` y la asociación del dominio se documentarán después de que Cloudflare las confirme. No inventar una URL antes de crear el proyecto.
+- Proyecto Cloudflare: `registro-servicio`, URL `https://registro-servicio.pages.dev/`, dominio `servicio.eliasstrizik.com.ar`.
+- El build inicial creado sin comando ni salida devolvía 404. Se corrigió a `pnpm run build` y `dist`, y se verificaron los tres archivos principales por HTTPS después del despliegue exitoso.
 - Mantener el plan gratuito. Si se alcanza un límite de cualquier proveedor, informar al propietario; no activar upgrades ni recargas automáticas.
 
 La exportación XLSX/CSV se genera en el navegador y las órdenes permanecen en Supabase. El cambio de alojamiento no copia ni mueve registros de clientes a Cloudflare.
