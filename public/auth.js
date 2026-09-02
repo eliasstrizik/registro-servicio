@@ -73,11 +73,16 @@
       byId('login-code').focus();
     } catch (error) {
       const text = error.message || '';
-      message(/habilitado|autorizado|not allowed|signup.*disabled/i.test(text)
+      const code = error.code || '';
+      message(code === 'over_email_send_rate_limit' || /email.*rate.*limit/i.test(text)
+        ? 'Se agotó temporalmente el cupo de correos por hora de todo el equipo. Se libera automáticamente; no hace falta pedir códigos repetidamente. Reintentá más tarde o contactá a administración si continúa.'
+        : /security purposes.*seconds|after \d+ seconds/i.test(text)
+          ? 'Todavía no se puede reenviar a este correo. Dejá pasar al menos 60 segundos desde el último pedido y reintentá una sola vez.'
+        : code === 'over_request_rate_limit' || error.status === 429 || /rate.*limit/i.test(text)
+          ? 'Hay demasiadas solicitudes de acceso. Dejá de reintentar por el momento y probá más tarde. Si continúa, contactá a administración.'
+        : /habilitado|autorizado|not allowed|signup.*disabled/i.test(text)
         ? 'Ese correo no está habilitado. Contactá a administración.'
-        : /rate|limit|seconds/i.test(text)
-          ? 'Se alcanzó el límite de envíos. Esperá unos minutos y reintentá.'
-          : 'No pudimos enviar el código. Reintentá más tarde o contactá a administración.', true);
+        : 'No pudimos enviar el código. Reintentá más tarde o contactá a administración.', true);
     } finally {
       button.disabled = false;
     }

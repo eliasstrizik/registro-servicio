@@ -10,6 +10,9 @@ enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 jwt_expiry = 3600
 
+[auth.rate_limit]
+email_sent = 30
+
 [auth.email]
 enable_signup = true
 enable_confirmations = true
