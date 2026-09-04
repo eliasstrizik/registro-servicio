@@ -49,7 +49,7 @@ Ingresar con una cuenta de rango Supervisor o superior, abrir **Usuarios** e int
 
 La API `manage_service_users` vuelve a validar el rango, la lista activa y la contraseña en cada llamada. La contraseña no se guarda en almacenamiento del navegador. Cinco fallos bloquean los intentos durante hasta 15 minutos. Técnicos y usuarios no pueden administrar cuentas aunque conozcan la contraseña compartida.
 
-La migración `20260904134322_role_hierarchy_and_order_delete.sql` añade la jerarquía, la edición de roles y el borrado protegido. Los cambios de usuarios quedan en `private.service_access_audit`; las órdenes borradas se copian primero a `private.service_order_deletions`, sin acceso desde el navegador. `tests/roles.sql`, `tests/users.sql` y sus pruebas de interfaz verifican jerarquía, denegaciones, confirmaciones y limpieza de credenciales.
+La migración `20260904180130_role_hierarchy_and_order_delete.sql` añade la jerarquía, la edición de roles y el borrado protegido. Los cambios de usuarios quedan en `private.service_access_audit`; las órdenes borradas se copian primero a `private.service_order_deletions`, sin acceso desde el navegador. `tests/roles.sql`, `tests/users.sql` y sus pruebas de interfaz verifican jerarquía, denegaciones, confirmaciones y limpieza de credenciales.
 
 ## Correo y dominio
 
