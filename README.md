@@ -7,7 +7,9 @@ Aplicación web para registrar órdenes de servicio con múltiples repuestos, co
 - Formulario con número de orden, fecha, cliente, técnico, modelo y observaciones.
 - Múltiples repuestos por orden (código, cantidad y descripción).
 - Acceso por correo autorizado y código de un solo uso (Supabase Auth).
-- Sección Usuarios: el administrador verifica además la contraseña de órdenes para ver la lista, agregar operadores y activar/desactivar correos. Las cuentas administradoras no se pueden modificar desde esta sección.
+- Sección Usuarios protegida por la contraseña de órdenes: permite agregar correos, cambiar su rango y activarlos o desactivarlos respetando la jerarquía.
+- Jerarquía: administrador principal → subadministrador → supervisor → técnico → usuario. Cada rango de Supervisor o superior solo puede ver y modificar rangos inferiores.
+- Eliminación de órdenes para Supervisor o superior, con confirmación, contraseña obligatoria y copia privada de auditoría antes del borrado.
 - Administrador principal: consulta y descarga directa tras iniciar sesión.
 - Operadores habilitados: carga de órdenes; consulta y descarga al ingresar la clave compartida.
 - Clave compartida solo en memoria durante la sesión, nunca en almacenamiento del navegador; botón para bloquear registros.
@@ -23,15 +25,13 @@ Instalá con `pnpm install --frozen-lockfile`. Ejecutá `pnpm dev` y abrí `http
 
 `pnpm build` genera el sitio estático en `dist/`. Supabase JS está fijado en el archivo de dependencias y se copia al build. La configuración del navegador usa solamente una clave publicable; no se incluye ninguna clave privilegiada.
 
-### Estado de migración (2 de septiembre de 2026)
+### Estado de producción (4 de septiembre de 2026)
 
-La nueva versión está publicada en **Cloudflare Pages, plan gratuito**, conectada a este repositorio con despliegues automáticos desde `main`. La aplicación y sus scripts responden HTTP 200. No se contrató Vercel Pro. El sitio anterior en OpenAI Sites continúa sin modificaciones, pendiente de retiro funcional después de comprobar el primer ingreso real por correo.
+La versión vigente está publicada en **Cloudflare Pages, plan gratuito**, conectada a este repositorio con despliegues automáticos desde `main`. No se contrató Vercel Pro. El sitio anterior en OpenAI Sites fue reemplazado por un aviso de cierre que dirige al dominio vigente.
 
 El proyecto de Vercel quedó como preparación anterior, sin despliegue ni plan pago. La integración gratuita de Resend provisionada desde Vercel sigue siendo el proveedor de SMTP; no requiere alojar la web en Vercel. No desconectarla durante el cambio de alojamiento sin preparar primero su reemplazo.
 
-La base ya tiene las funciones nuevas y el administrador principal configurado, conservando las órdenes existentes y la clave anterior. Los cuatro correos proporcionados por escrito están habilitados; los de la captura están pendientes de confirmación adicional. Los correos reales y la contraseña no se incluyen en este repositorio público.
-
-Las funciones antiguas se conservan temporalmente para que el sitio existente siga funcionando. La migración de seguridad no está cerrada hasta revocar sus permisos anónimos durante el cambio definitivo, después de verificar el acceso nuevo. No publicar la nueva versión como terminada antes de esa verificación.
+La base tiene el administrador principal configurado, los correos autorizados y la jerarquía de cinco rangos. Las API anónimas anteriores fueron revocadas. Los correos reales y la contraseña no se incluyen en este repositorio público.
 
 - Aplicación: https://servicio.eliasstrizik.com.ar/
 - URL alternativa: https://registro-servicio.pages.dev/
@@ -39,17 +39,17 @@ Las funciones antiguas se conservan temporalmente para que el sitio existente si
 
 ## Base de datos
 
-`supabase/schema.sql` documenta la base histórica, no la configuración final de seguridad. La evolución aditiva está en `supabase/migrations/20260902171856_email_access_control.sql`; no elimina órdenes ni funciones anteriores. La lista autorizada se administra exclusivamente en `private.service_access`, con roles `admin` y `operator`.
+`supabase/schema.sql` documenta la base histórica; la configuración final de seguridad está en las migraciones. La lista autorizada se administra exclusivamente en `private.service_access`, con roles `admin`, `sub_admin`, `supervisor`, `technician` y `user`.
 
 `tests/access.sql` comprueba permisos, clave, límite de intentos, carga con varios repuestos y revocación de acceso dentro de una transacción que se revierte. `tests/access.test.mjs` comprueba interfaz, descarga, cierre de sesión y respuestas obsoletas.
 
 ## Administración de usuarios
 
-Ingresar con la cuenta administradora, abrir **Usuarios** e introducir la contraseña de órdenes registradas. Se puede buscar por correo, agregar operadores y activar/desactivar los existentes. Cada alta o cambio requiere confirmación. La nueva persona ingresa solicitando su propio código de correo; no se envía una invitación automáticamente. No se agregaron automáticamente correos adicionales.
+Ingresar con una cuenta de rango Supervisor o superior, abrir **Usuarios** e introducir la contraseña de órdenes registradas. Se puede buscar por correo, agregar cuentas, cambiar su rango y activarlas o desactivarlas. Solo aparecen la propia cuenta y los rangos inferiores; nunca se puede modificar la cuenta propia, el administrador principal ni un rango igual o superior. Cada alta o cambio requiere confirmación. La nueva persona ingresa solicitando su propio código de correo; no se envía una invitación automáticamente.
 
-La API `manage_service_users` vuelve a validar administrador, lista activa y contraseña en cada llamada. La contraseña no se guarda en almacenamiento del navegador. Cinco fallos bloquean los intentos durante hasta 15 minutos. Las cuentas administradoras están protegidas: esta sección no permite desactivarlas ni crear/promover otros administradores. Un operador no puede administrar usuarios aunque conozca la contraseña compartida.
+La API `manage_service_users` vuelve a validar el rango, la lista activa y la contraseña en cada llamada. La contraseña no se guarda en almacenamiento del navegador. Cinco fallos bloquean los intentos durante hasta 15 minutos. Técnicos y usuarios no pueden administrar cuentas aunque conozcan la contraseña compartida.
 
-La migración `20260902182747_service_users_admin.sql` añade esta API y un registro privado de auditoría `private.service_access_audit`. Las pruebas `tests/users.sql` se ejecutan con rollback y verifican denegaciones, altas, bajas, reactivación, administrador protegido, límite de intentos y auditoría; `tests/users.test.mjs` verifica el formulario, confirmaciones y limpieza al cerrar sesión. La revocación global sigue pendiente del cierre de las API antiguas descrito arriba.
+La migración `20260904134322_role_hierarchy_and_order_delete.sql` añade la jerarquía, la edición de roles y el borrado protegido. Los cambios de usuarios quedan en `private.service_access_audit`; las órdenes borradas se copian primero a `private.service_order_deletions`, sin acceso desde el navegador. `tests/roles.sql`, `tests/users.sql` y sus pruebas de interfaz verifican jerarquía, denegaciones, confirmaciones y limpieza de credenciales.
 
 ## Correo y dominio
 

@@ -16,7 +16,7 @@ function setup() {
       const events = new Map();
       nodes.set(id, {value:'',textContent:'',innerHTML:'',disabled:false,events,
         classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle:(x,force)=>{force=force??!classes.has(x);force?classes.add(x):classes.delete(x);}},
-        addEventListener:(event,fn)=>events.set(event,fn),replaceChildren(){this.innerHTML='';},
+        addEventListener:(event,fn)=>{const previous=events.get(event);events.set(event,previous?async value=>{await previous(value);return fn(value)}:fn)},replaceChildren(){this.innerHTML='';},
         close(){},showModal(){},reset(){},focus(){},click(){}
       });
     }
@@ -119,3 +119,14 @@ test('source does not store shared password or privilege in browser storage',()=
   assert.match(html,/type="date"/);
   assert.match(html,/Libro de Excel \(\.xlsx\)/);
 });
+test('supervisor sees delete and deletion requires confirmation password',async()=>{
+  const app=setup();app.login({email:'supervisor@example.invalid',role:'supervisor'});
+  app.node('admin-password').value='view-password';await app.node('admin-gate').events.get('submit')({preventDefault(){}});
+  assert.match(app.node('orders-list').innerHTML,/data-delete="order-1"/);
+  app.node('orders-list').events.get('click')({target:{closest:selector=>selector==='[data-delete]'?{dataset:{delete:'order-1'}}:null}});
+  app.node('delete-password').value='delete-password';
+  await app.node('delete-confirm-form').events.get('submit')({preventDefault(){}});
+  assert.equal(app.calls.at(-2).name,'delete_service_order');
+  assert.equal(app.calls.at(-2).args.p_password,'delete-password');
+});
+

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../public/users.js',import.meta.url),'utf8');
 const owner = {email:'admin@example.invalid',role:'admin'};
-const fixture = [ {...owner,active:true}, {email:'operator@example.invalid',role:'operator',active:true} ];
+const fixture = [ {...owner,active:true}, {email:'operator@example.invalid',role:'technician',active:true} ];
 function setup() {
   const nodes = new Map(), events = new Map(), calls = [];
   let handler = async () => ({data:{users:fixture},error:null});
@@ -52,17 +52,18 @@ test('wrong password and server denials clear sensitive users',async()=>{
   assert.equal(app.node('users-list').innerHTML,'');assert.equal(app.node('users-dashboard').classList.contains('hidden'),true);
   assert.match(app.node('users-status').textContent,/Clave incorrecta/);
 });
-test('adding requires confirmation and sends no administrator role',async()=>{
+test('adding requires confirmation and sends the selected lower role',async()=>{
   const app=setup();app.login(owner);await app.unlock();
   app.node('new-user-email').value='NEW@EXAMPLE.INVALID';
+  app.node('new-user-role').value='supervisor';
   app.fire('add-user-form');assert.equal(app.calls.length,1);assert.equal(app.node('user-confirm').open,true);
   await app.fire('user-confirm-form');
   assert.equal(app.calls[1].args.p_action,'add');assert.equal(app.calls[1].args.p_email,'new@example.invalid');
-  assert.equal(app.calls[1].args.p_password,'fixture-password');assert.equal('p_role' in app.calls[1].args,false);
+  assert.equal(app.calls[1].args.p_password,'fixture-password');assert.equal(app.calls[1].args.p_role,'supervisor');
 });
 test('deactivation requires confirmation; cancel makes no mutation',async()=>{
   const app=setup();app.login(owner);await app.unlock();
-  const click={target:{closest:()=>({dataset:{userEmail:'operator@example.invalid'}})}};
+  const click={target:{closest:()=>({dataset:{activeEmail:'operator@example.invalid'}})}};
   app.fire('users-list','click',click);app.fire('user-confirm-cancel','click');
   await app.fire('user-confirm-form');assert.equal(app.calls.length,1);
   app.fire('users-list','click',click);await app.fire('user-confirm-form');
@@ -80,11 +81,16 @@ test('logout, account switches and locks discard late responses',async()=>{
 });
 test('same-account refresh preserves unlock and safely escapes displayed email',async()=>{
   const app=setup();app.login(owner);
-  app.handler(async()=>({data:{users:[{email:'<img>@example.invalid',role:'operator',active:true}]},error:null}));
+  app.handler(async()=>({data:{users:[{email:'<img>@example.invalid',role:'technician',active:true}]},error:null}));
   await app.unlock();app.login({...owner});
   assert.equal(app.node('users-dashboard').classList.contains('hidden'),false);
   assert.match(app.node('users-list').innerHTML,/&lt;img&gt;/);
   assert.doesNotMatch(app.node('users-list').innerHTML,/<img>/);
   assert.doesNotMatch(source,/localStorage|sessionStorage|RS-[a-f0-9]+/);
+});
+test('supervisor can open Users but technician cannot',async()=>{
+  const app=setup();app.login({...owner,role:'supervisor'});await app.unlock();
+  assert.equal(app.calls.length,1);assert.equal(app.node('tab-users').classList.contains('hidden'),false);
+  app.login({...owner,role:'technician'});assert.equal(app.node('tab-users').classList.contains('hidden'),true);
 });
 
